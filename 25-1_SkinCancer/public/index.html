@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>피부 병변 진단기</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="description" content="Use the power of Machine Learning to diagnose Skin Lesions." />
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="config.js"></script>
+    <script>
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        const database = firebase.database();
+    </script>
+
+    <!-- CSS Styles -->
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.2/css/all.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        .button-link {
+            font-size: 14px;
+            padding: 8px 20px;
+            margin: 5px 8px;
+            border-radius: 8px;
+            border: 1px solid #009688;
+            color: #009688;
+            background-color: white;
+            display: inline-block;
+            text-decoration: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+
+        .button-link:active {
+            background-color: #009688;
+            color: white;
+        }
+
+        .upload-section label {
+            margin: 10px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .upload-section label:active {
+            filter: brightness(90%);
+        }
+
+        .w3-card {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 12px;
+        }
+
+        .prediction-box {
+            background-color: #e0f7fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="w3-container w3-margin-top">
+        <div class="w3-card">
+            <div class="w3-center w3-margin-bottom">
+                <a href="faq.html" class="button-link">앱 소개 및 도움말</a>
+                <a href="history.html" class="button-link">진단 기록 확인</a>
+            </div>
+
+            <div class="w3-center" style="position: relative;">
+                <img id="selected-image" class="w3-image w3-round" src="assets/samplepic.jpg" style="max-height:250px;">
+                <div id="upload-hint"
+                    style="position:absolute; top:40%; left:0; right:0; text-align:center; color:rgba(255, 255, 255, 0.6); font-size:16px; text-shadow: 0 0 5px black;">
+                    사진을 선택하거나 촬영하세요
+                </div>
+            </div>
+
+
+            <div class="w3-center w3-padding upload-section">
+                <label class="w3-deep-orange w3-button">
+                    📁 사진 선택
+                    <input type="file" id="uploadInput" accept="image/*" style="display: none;">
+                </label>
+                <label class="w3-blue w3-button">
+                    📷 사진 촬영
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+                </label>
+            </div>
+
+            <div class="w3-center w3-margin-bottom">
+                <div class="progress-bar">
+                    <i class="fa fa-spinner fa-spin" style="font-size:24px"></i>
+                    <p>모델을 불러오는 중...</p>
+                </div>
+            </div>
+
+            <div class="w3-light-grey" style="margin: 0 10px; border-radius: 5px;">
+                <div id="myBar" class="w3-blue" style="height:5px;width:100%; border-radius: 5px;"></div>
+            </div>
+
+            <div class="prediction-box">
+                <p class="w3-center w3-large w3-text-teal">예측 결과</p>
+                <ol id="prediction-list" class="w3-left-align"></ol>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+    <script>
+        // 병변 클래스 정의
+        const SKIN_CLASSES = {
+            0: '광선각화증  (akiec)',
+            1: '기저세포암 (bcc)',
+            2: '양성 각화증 (bkl)',
+            3: '피부 섬유종 (df)',
+            4: '흑색종 (mel)',
+            5: '모반 / 점 (nv)',
+            6: '혈관 병변 (vasc)'
+        };
+
+        let currentImageFile = null;
+        let skinFilterModel, lesionModel;
+
+        // 모델 로드
+        (async function () {
+            try {
+                skinFilterModel = await tf.loadLayersModel('final_model_kaggle_version/skin_filter_model/model.json');
+                lesionModel = await tf.loadLayersModel('final_model_kaggle_version/lesion_model/model.json');
+                $('.progress-bar').hide();
+                console.log("✅ 두 모델 로드 완료");
+            } catch (e) {
+                console.error("❌ 모델 로드 실패:", e);
+                $('.progress-bar').html("<p style='color:red;'>모델 로드에 실패했습니다. 다시 시도해주세요.</p>");
+            }
+        })();
+
+
+        // Firestore 저장 함수
+        async function savePredictionToFirestore(imageName, results) {
+            try {
+                await db.collection("predictions").add({
+                    imageName,
+                    results,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("✅ Firestore 저장됨");
+            } catch (e) {
+                console.error("❌ Firestore 저장 실패:", e);
+            }
+        }
+
+        // Realtime DB 저장 함수
+        function saveDiagnosisResult(imageFile, resultArray) {
+            const timestamp = new Date().toISOString();
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const base64Image = e.target.result;
+                const entry = {
+                    imageData: base64Image,
+                    result: resultArray,
+                    timestamp: timestamp,
+                    fileName: imageFile.name
+                };
+                firebase.database().ref('records').push(entry);
+            };
+            reader.readAsDataURL(imageFile);
+        }
+
+        // 예측 수행
+        async function runPrediction(imageElement, filename = '업로드 이미지') {
+            document.querySelectorAll('label.w3-button').forEach(btn => btn.style.pointerEvents = 'none');
+
+            if (!skinFilterModel || !lesionModel) {
+                console.error("❌ 모델이 아직 로드되지 않았습니다.");
+                return;
+            }
+
+            const tensor = tf.browser.fromPixels(imageElement)
+                .resizeNearestNeighbor([224, 224])
+                .toFloat()
+                .sub(tf.scalar(127.5))
+                .div(tf.scalar(127.5))
+                .expandDims();
+
+            const filterProb = await skinFilterModel.predict(tensor).data();
+
+            const list = document.getElementById('prediction-list');
+            list.innerHTML = `<li class="w3-text-blue fname-font" style="list-style-type:none;">${filename}</li>`;
+
+            // 피부 이미지가 아닌 경우
+            if (filterProb[0] < 0.5) {
+                list.innerHTML += `
+                    <li style="color: red; list-style-type: none;">
+                        피부 이미지가 아닙니다.<br>분석을 수행하지 않았습니다.
+                    </li>`;
+                document.querySelectorAll('label.w3-button').forEach(btn => btn.style.pointerEvents = 'auto');
+                return;
+            }
+
+
+            // ✅ 피부 이미지인 경우 병변 진단 수행
+            const predictions = await lesionModel.predict(tensor).data();
+            const top = Array.from(predictions)
+                .map((p, i) => ({ probability: p, className: SKIN_CLASSES[i] }))
+                .sort((a, b) => b.probability - a.probability)
+                .slice(0, 3);
+
+            top.forEach(p => {
+                list.innerHTML += `<li style="list-style-type:none;">${p.className}: ${p.probability.toFixed(4)}</li>`;
+            });
+
+            await savePredictionToFirestore(filename, top);
+            saveDiagnosisResult(currentImageFile, top);
+
+            document.querySelectorAll('label.w3-button').forEach(btn => btn.style.pointerEvents = 'auto');
+        }
+
+        // 이미지 처리 및 예측 실행
+        const previewImg = document.getElementById('selected-image');
+        function handleImageUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                currentImageFile = file;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.onload = () => runPrediction(previewImg, file.name);
+                    previewImg.src = e.target.result;
+                    document.getElementById('upload-hint').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 이벤트 바인딩
+        document.getElementById('uploadInput').addEventListener('change', function () {
+            handleImageUpload(this);
+        });
+
+        document.getElementById('cameraInput').addEventListener('change', function () {
+            handleImageUpload(this);
+        });
+    </script>
+</body>
+
+</html>

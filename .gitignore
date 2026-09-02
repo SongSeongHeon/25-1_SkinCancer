@@ -1,0 +1,13 @@
+# Firebase 실제 키 (config.example.js 참고해서 로컬에 직접 생성)
+public/config.js
+
+# Firebase 캐시/로컬 설정
+.firebase/
+.DS_Store
+
+# Jupyter 체크포인트
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc

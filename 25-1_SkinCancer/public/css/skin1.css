@@ -1,0 +1,309 @@
+/* 마진 및 패딩 */
+.add-margin {
+	margin-bottom: 30px;
+	margin-top: 20px;
+}
+
+.add-padding {
+	padding-bottom: 30px;
+}
+
+/* 링크 스타일 */
+a {
+	text-decoration: none;
+}
+
+/* 입력 필드 스타일 */
+input {
+	font-size: 20px;
+	font-family: Helvetica, sans-serif;
+}
+
+input[type="file"] {
+	opacity: 0;
+}
+
+/* 제목 영역 여백 */
+.title {
+	padding-top: 30px;
+	padding-bottom: 30px;
+}
+
+/* 숨김 처리 */
+.hide {
+	display: none;
+}
+
+/* 폰트 및 텍스트 관련 */
+.new-font {
+	font-family: monospace, serif;
+	font-size: 16px;
+}
+
+.space-letters {
+	letter-spacing: .05em;
+}
+
+.unblock {
+	display: inline-block;
+}
+
+.dont-break-out {
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+}
+
+li {
+	font-family: monospace, serif;
+	font-size: 16px;
+}
+
+/* 로고 스타일 */
+.logo h1 {
+	font-size: 50px;
+	font-family: 'Oswald', sans-serif;
+	line-height: 1.1;
+}
+
+.logo1 {
+	font-family: 'Oswald', sans-serif;
+}
+
+/* 헤더 스타일 */
+.header-style {
+	height: 50px;
+	background-color: #0375b4;
+}
+
+.adjust-fontcolor {
+	color: black;
+}
+
+.normal-header {
+	display: block;
+}
+
+/* 버튼 및 태그 */
+.btn-font {
+	font-size: 18px;
+	letter-spacing: .03em;
+}
+
+.tag-font {
+	font-size: 16px;
+}
+
+/* 레이아웃 여백 */
+.side-margin {
+	margin-left: 20%;
+	margin-right: 20%;
+}
+
+/* 이미지 사이즈 조정 */
+.adjust-image {
+	max-width: 400px;
+}
+
+/* 페이지 하단 여백 */
+.bottom-padding {
+	padding-bottom: 300px;
+}
+
+/* 데스크톱 화면 전용 스타일 */
+@media only screen and (min-device-width: 1200px) {
+	.btn-font {
+		font-size: 15px;
+		letter-spacing: .03em;
+	}
+
+	.new-font {
+		font-size: 15px;
+	}
+
+	li {
+		font-size: 15px;
+	}
+
+	.side-margin {
+		margin-left: 30%;
+		margin-right: 30%;
+	}
+
+	input {
+		font-size: 16px;
+	}
+
+	.logo h1 {
+		font-size: 40px;
+	}
+
+	.adjust-image {
+		max-width: 300px;
+	}
+
+	.card {
+		box-shadow: 0 4px 8px 4px rgba(0, 0, 0, 0.2);
+		margin-top: 16px;
+		margin-bottom: 16px;
+	}
+
+	.tag-font {
+		font-size: 12px;
+	}
+
+	.bottom-padding {
+		padding-bottom: 300px;
+	}
+}
+
+/* 모바일 전체 공통 스타일 */
+@media only screen and (max-width: 480px) {
+	.normal-header {
+		display: none;
+	}
+
+	.logo h1 {
+		font-size: 50px;
+	}
+
+	.adjust-image {
+		max-width: 200px;
+		margin-bottom: 40px;
+	}
+
+	.header-stylehome {
+		display: none;
+	}
+}
+
+/* 모바일 세로 화면 */
+@media only screen and (max-width: 480px) and (orientation: portrait) {
+	.btn-font {
+		font-size: 12px;
+		letter-spacing: .03em;
+	}
+
+	.add-margintop {
+		margin-top: 10%;
+	}
+
+	.side-margin {
+		margin-left: 1%;
+		margin-right: 1%;
+	}
+
+	.adjust-image {
+		max-width: 90%;
+		margin-bottom: 10px;
+	}
+
+	.space-letters {
+		letter-spacing: .03em;
+	}
+
+	.logo h1 {
+		font-size: 30px;
+	}
+
+	.bottom-padding {
+		padding-bottom: 200px;
+	}
+
+	.mono-font h5 {
+		font-size: 16px;
+	}
+
+	.new-font {
+		font-size: 14px;
+	}
+
+	li {
+		font-size: 12px;
+	}
+
+	.tag-font {
+		font-size: 10px;
+	}
+
+	.add-padding {
+		padding-bottom: 30px;
+		padding-left: 2px;
+		padding-right: 2px;
+	}
+}
+
+/* 모바일 가로 화면 */
+@media only screen and (max-width: 480px) and (orientation: landscape) {
+	.btn-font {
+		font-size: 12px;
+		letter-spacing: .03em;
+	}
+
+	.add-margintop {
+		margin-top: 10%;
+	}
+
+	.side-margin {
+		margin-left: 15%;
+		margin-right: 15%;
+	}
+
+	.adjust-image {
+		max-width: 60%;
+		margin-bottom: 10px;
+	}
+
+	.space-letters {
+		letter-spacing: .03em;
+	}
+
+	.logo h1 {
+		font-size: 35px;
+	}
+
+	.bottom-padding {
+		padding-bottom: 150px;
+	}
+
+	.mono-font h5 {
+		font-size: 16px;
+	}
+
+	.new-font {
+		font-size: 11px;
+	}
+
+	li {
+		font-size: 10px;
+	}
+
+	.add-padding {
+		padding-bottom: 30px;
+		padding-left: 2px;
+		padding-right: 2px;
+	}
+
+	.tag-font {
+		font-size: 12px;
+	}
+
+	.normal-header {
+		display: none;
+	}
+}
+
+/* 태블릿 이상 */
+@media only all and (min-width: 520px) {
+	/* 추가 필요 시 작성 */
+}
+
+/* 태블릿 가로 화면 */
+@media only all and (max-width: 520px) and (orientation: landscape) {
+	.new-font {
+		font-size: 15px;
+	}
+
+	li {
+		font-size: 15px;
+	}
+}
