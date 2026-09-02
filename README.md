@@ -1,174 +1,187 @@
-# 🩺 피부암 진단 예측 시스템 (Skin Cancer Diagnosis)
+# Skin Lesion Diagnosis Web Application
 
-> HAM10000 데이터셋 기반 MobileNet 전이학습으로 피부 병변 7종을 분류하고,
-> Top-3 확률을 제시하는 브라우저 기반 진단 웹앱입니다.
+본 프로젝트는 피부 병변 이미지를 이용한 브라우저 기반 피부암 진단 보조 시스템 개발을 목표로 한다.
 
-- **기간**: 25-1학기
-- **역할**: 개인 프로젝트
-- **데이터셋**: [HAM10000 (Human Against Machine with 10000 training images)](https://www.kaggle.com/datasets/kmader/skin-cancer-mnist-ham10000)
-- **모델**: MobileNet 기반 전이학습 (Keras `.h5` → TensorFlow.js 변환)
-- **배포**: Firebase Hosting (정적 웹앱, 브라우저 내 추론)
+피부 병변은 육안으로 양성과 악성을 구분하기 어렵고, 조기 진단 여부가 예후에 큰 영향을 미친다. 본 프로젝트에서는 HAM10000 데이터셋을 기반으로 MobileNet 전이학습 모델을 학습하고, 학습된 모델을 TensorFlow.js로 변환하여 서버 없이 브라우저에서 직접 추론하는 정적 웹 애플리케이션으로 구현하였다.
 
-<br>
+입력 이미지는 먼저 피부 여부 판별 모델을 통과한 뒤, 피부 이미지로 판정된 경우에만 병변 분류 모델을 거쳐 상위 확률 결과를 제시한다.
 
-## 📋 목차
+## Project Overview
 
-- [문제의식](#-문제의식)
-- [시스템 아키텍처](#-시스템-아키텍처)
-- [주요 기능](#-주요-기능)
-- [폴더 구조](#-폴더-구조)
-- [실행 방법](#-실행-방법)
-- [모델 성능](#-모델-성능)
-- [스크린샷](#-스크린샷)
-- [향후 과제](#-향후-과제)
-
-<br>
-
-## 🔍 문제의식
-
-피부 병변(모반, 흑색종 등)은 육안으로 양성/악성 구분이 어렵고, 조기 진단이 예후에 큰 영향을 미칩니다.
-이 프로젝트는 **누구나 스마트폰 카메라로 찍은 사진 한 장으로 1차 스크리닝**을 받아볼 수 있는
-경량 웹 진단 도구를 목표로 합니다.
-
-<br>
-
-## 🏗 시스템 아키텍처
-
-```
-[사용자 이미지 업로드/촬영]
-          │
-          ▼
-┌─────────────────────┐
-│  1차 필터 모델        │  → 입력 이미지가 "피부 이미지"인지 판별
-│  (skin_filter_model) │     (오분류 방지를 위한 사전 게이트)
-└─────────┬───────────┘
-          │ 피부 이미지로 판정된 경우만 통과
-          ▼
-┌─────────────────────┐
-│  병변 분류 모델        │  → 7개 클래스 확률 산출
-│  (lesion_model)      │     (akiec/bcc/bkl/df/mel/nv/vasc)
-└─────────┬───────────┘
-          │
-          ▼
-   Top-3 확률 결과 표시
-          │
-          ▼
-  Firebase Firestore / Realtime DB
-   (이미지 + 예측 결과 로그 저장)
+```text
+Image Upload or Camera Capture
+→ Skin Filter Model Inference (Skin / Non-Skin)
+→ Lesion Classification Model Inference
+→ Top-3 Probability Result
+→ Firebase Firestore / Realtime Database Log
 ```
 
-> 📌 두 모델 모두 브라우저에서 **TensorFlow.js**로 직접 추론합니다 (서버 추론 없음).
-> 학습은 Python/Keras로 진행 후 `.h5` → `tfjs_converter`로 변환했습니다.
+## Main Features
 
-<br>
+- 사진 업로드 및 카메라 촬영 기반 이미지 입력
+- 피부 이미지 여부 사전 판별 (오분류 방지용 필터 모델)
+- 피부 병변 7종 분류 및 Top-3 확률 제시
+- Firebase Firestore, Storage, Realtime Database 연동 결과 저장
+- 진단 기록 히스토리 페이지 제공
+- 브라우저 내 TensorFlow.js 추론 구조 (서버 추론 없음)
 
-## ✨ 주요 기능
+## Project Structure
 
-- 📁 사진 업로드 / 📷 카메라 촬영으로 이미지 입력
-- 피부 이미지 여부 사전 필터링 (오탐 방지)
-- 7개 피부 병변 클래스에 대한 Top-3 확률 제시
-  - 광선각화증(akiec), 기저세포암(bcc), 양성각화증(bkl), 피부섬유종(df), 흑색종(mel), 모반(nv), 혈관병변(vasc)
-- 진단 기록 히스토리 확인 (Firebase 연동)
-- 완전 클라이언트 사이드 추론 (서버 비용 없음, 개인정보 이미지가 서버로 전송되지 않음)
-
-<br>
-
-## 📁 폴더 구조
-
-```
+```text
 25-1_SkinCancer/
-├── public/                          # Firebase Hosting 배포 대상 (실행 가능한 웹앱)
-│   ├── index.html                   # 메인 진단 페이지 (모델 로드 + 추론 로직 포함)
-│   ├── faq.html / history.html      # 보조 페이지
-│   ├── config.example.js            # Firebase 설정 템플릿 (커밋 O)
-│   ├── config.js                    # 실제 Firebase 키 (커밋 X, .gitignore 처리)
-│   ├── css/                         # 스타일시트
-│   ├── assets/                      # 이미지 리소스
-│   └── final_model_kaggle_version/  # TensorFlow.js 변환 모델
-│       ├── skin_filter_model/       # 1차 피부 여부 필터 모델
-│       └── lesion_model/            # 병변 7종 분류 모델
-│
-├── training/                        # 모델 학습 코드 및 원본 산출물
-│   ├── Final_SkinDisease.ipynb      # 학습 노트북 (데이터 전처리 → MobileNet 학습 → 평가)
-│   └── skin_cancer_model.h5         # 학습된 Keras 모델 원본
-│
-├── legacy/                          # 초기 버전 스크립트 (현재 미사용, 참고용 보관)
-│   └── jscript/
-│
-├── firebase.json / .firebaserc      # Firebase Hosting 설정
+├── README.md
 ├── .gitignore
-└── README.md
+├── firebase.json
+├── .firebaserc
+│
+├── public/
+│   ├── index.html
+│   ├── faq.html
+│   ├── history.html
+│   ├── config.example.js
+│   ├── config.js
+│   ├── css/
+│   ├── assets/
+│   └── final_model_kaggle_version/
+│       ├── skin_filter_model/
+│       └── lesion_model/
+│
+├── training/
+│   ├── Final_SkinDisease.ipynb
+│   └── skin_cancer_model.h5
+│
+└── legacy/
+    └── jscript/
 ```
 
-<br>
+## Source Code Description
 
-## 🚀 실행 방법
+| Path | Description |
+|---|---|
+| `public/index.html` | 이미지 업로드, 모델 로드, 추론 및 결과 표시 로직을 포함한 메인 페이지 |
+| `public/faq.html` | 앱 소개 및 사용 안내 페이지 |
+| `public/history.html` | Firebase 기반 진단 기록 조회 페이지 |
+| `public/config.example.js` | Firebase 설정 템플릿 |
+| `public/config.js` | 실제 Firebase 프로젝트 키 (저장소에 포함하지 않음) |
+| `public/final_model_kaggle_version/skin_filter_model/` | 피부 여부 판별용 TensorFlow.js 변환 모델 |
+| `public/final_model_kaggle_version/lesion_model/` | 피부 병변 7종 분류용 TensorFlow.js 변환 모델 |
+| `training/Final_SkinDisease.ipynb` | HAM10000 데이터 전처리, MobileNet 학습, 평가 전체 과정 |
+| `training/skin_cancer_model.h5` | 학습된 Keras 모델 원본 |
+| `legacy/jscript/` | 초기 버전 스크립트 (현재 미사용, 참고용 보관) |
 
-### 웹앱만 로컬에서 실행 (모델 추론 확인용)
+## Dataset
+
+본 프로젝트는 [HAM10000 (Human Against Machine with 10000 training images)](https://www.kaggle.com/datasets/kmader/skin-cancer-mnist-ham10000) 데이터셋을 사용한다.
+
+데이터셋 원본 이미지 및 메타데이터는 용량 문제로 GitHub 저장소에 포함하지 않는다. 모델을 재학습하려면 데이터셋을 직접 다운로드한 뒤 `training/Final_SkinDisease.ipynb` 내 경로 설정에 맞게 배치해야 한다.
+
+분류 대상 클래스는 다음과 같다.
+
+```text
+akiec  광선각화증
+bcc    기저세포암
+bkl    양성각화증
+df     피부섬유종
+mel    흑색종
+nv     모반
+vasc   혈관병변
+```
+
+## Model Pipeline
+
+학습은 Keras 기반으로 진행하며, MobileNet(ImageNet pretrained)의 상위 레이어를 교체하여 7-class 분류기로 재구성한다.
+
+```text
+HAM10000 Metadata Split (train / val)
+→ Class-wise Image Directory Construction
+→ Data Augmentation (Minority Class)
+→ MobileNet Transfer Learning
+→ Class Weight 기반 불균형 보정
+→ Keras .h5 Model
+→ TensorFlow.js Conversion
+```
+
+학습된 `.h5` 모델은 `tensorflowjs_converter`를 통해 `model.json` + 가중치 shard 형태로 변환하여 `public/final_model_kaggle_version/`에 배치한다.
+
+## Web Application
+
+`public/`은 Firebase Hosting 기반 정적 웹 애플리케이션이다.
+
+```text
+Skin Filter Model Load
+→ Lesion Classification Model Load
+→ Image Input (Upload / Camera)
+→ Tensor Preprocessing (Resize 224x224, Normalize)
+→ Skin Filter Inference
+→ Lesion Classification Inference (Skin으로 판정된 경우만)
+→ Top-3 Result Display
+→ Firestore / Realtime Database Log
+```
+
+두 모델 모두 브라우저에서 직접 추론하며, 이미지 원본은 서버로 전송되지 않고 클라이언트에서 처리된다. 단, 사용자가 결과 저장에 동의한 경우 Firebase Storage에 이미지가 업로드된다.
+
+## Requirements
+
+모델 학습 및 변환에 사용하는 주요 패키지는 다음과 같다.
+
+```text
+tensorflow
+tensorflowjs
+pandas
+scikit-learn
+matplotlib
+seaborn
+```
+
+설치 명령어는 다음과 같다.
 
 ```bash
-# public/config.example.js를 복사해 config.js 생성 후 본인 Firebase 프로젝트 값 입력
-cp public/config.example.js public/config.js
-
-cd public
-python -m http.server 8080
-# 브라우저에서 http://localhost:8080 접속
+pip install tensorflow tensorflowjs pandas scikit-learn matplotlib seaborn
 ```
 
-> Firebase 저장 기능(Firestore/Storage)을 쓰지 않고 **분류 결과만 확인**하려면
-> `config.js`에 더미 값을 넣어도 모델 추론 자체는 정상 동작합니다.
+웹 애플리케이션은 별도 빌드 과정 없이 정적 파일로 구동된다. 로컬 실행 예시는 다음과 같다.
 
-### Firebase Hosting 배포
+```bash
+cp public/config.example.js public/config.js
+cd public
+python -m http.server 8080
+```
+
+Firebase Hosting 배포 예시는 다음과 같다.
 
 ```bash
 firebase login
 firebase deploy
 ```
 
-### 모델 재학습
+## Repository Policy
 
-`training/Final_SkinDisease.ipynb` 참고 (HAM10000 데이터셋 로컬 경로 설정 필요).
+다음 파일은 GitHub 저장소에 포함하지 않는다.
 
-<br>
+```text
+public/config.js (Firebase 실제 프로젝트 키)
+HAM10000 원본 이미지 및 메타데이터
+.firebase/ 캐시 디렉토리
+.ipynb_checkpoints/
+```
 
-## 📊 모델 성능
+## Development Status
 
-| 항목 | 내용 |
-|---|---|
-| Backbone | MobileNet (ImageNet pretrained, top 레이어 교체) |
-| 입력 크기 | 224 × 224 × 3 |
-| 클래스 수 | 7 (akiec, bcc, bkl, df, mel, nv, vasc) |
-| 평가지표 | Categorical Accuracy, Top-3 Categorical Accuracy |
-| 클래스 불균형 대응 | Data Augmentation + Class Weight 적용 |
+현재 포함된 구현 범위는 다음과 같다.
 
-> 상세 학습 곡선/혼동행렬은 `training/Final_SkinDisease.ipynb` 참고
+- HAM10000 기반 데이터 전처리 및 train/val 분할
+- MobileNet 전이학습 모델 구조
+- Class Weight 기반 클래스 불균형 보정
+- 학습 곡선 및 Confusion Matrix 평가
+- Keras → TensorFlow.js 모델 변환
+- 피부 여부 사전 필터 모델
+- 병변 7종 분류 및 Top-3 확률 제시
+- 이미지 업로드 및 카메라 촬영 입력
+- Firebase Firestore, Storage, Realtime Database 연동
+- 진단 기록 히스토리 페이지
 
-<br>
+## Notes
 
-## 📸 스크린샷
+본 프로젝트는 피부 병변 분류 모델의 학부 개인 프로젝트 결과물이다.
 
-<!-- TODO: 실제 스크린샷으로 교체
-<p align="center">
-  <img src="docs/screenshots/main_upload.png" width="45%" alt="메인 업로드 화면"/>
-  <img src="docs/screenshots/result.png" width="45%" alt="진단 결과 화면"/>
-</p>
--->
-
-| 메인 화면 | 진단 결과 |
-|---|---|
-| _(스크린샷 추가 예정)_ | _(스크린샷 추가 예정)_ |
-
-<br>
-
-## 🔮 향후 과제
-
-- [ ] 실제 임상 이미지(비 Kaggle 데이터) 대상 일반화 성능 검증
-- [ ] Grad-CAM 등 설명가능성(XAI) 시각화 추가
-- [ ] 모델 경량화(양자화)로 초기 로딩 속도 개선
-- [ ] 다국어(영어) 지원
-
-<br>
-
----
-
-⚠️ **의료 면책 조항**: 본 시스템은 학술 프로젝트 목적의 프로토타입이며, 실제 의료 진단을 대체하지 않습니다. 피부 병변이 의심되는 경우 반드시 전문의와 상담하세요.
+분류 결과는 학습 목적의 보조 지표이며, 실제 의료 진단 또는 치료 판단 목적으로 사용하지 않는다. 피부 병변이 의심되는 경우 반드시 전문의와 상담해야 한다.
